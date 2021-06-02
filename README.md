@@ -5,7 +5,7 @@ Detects blocks, becomes magik.
 # Installation
 Run the following two commands, then you can run the `Detectionator` file.
 
-`wget https://raw.githubusercontent.com/Fatboychummy-CC/BlockDetectionator/main/Detectionator.lua`
+`wget https://raw.githubusercontent.com/Fatboychummy-CC/Block-Detectionator/main/Detectionator.lua`
 
 `pastebin get rWPVArBW ccanvas`
 
