@@ -2,5 +2,12 @@
 Detects blocks, becomes magik.
 
 
-# Requirements
-Relies on the canvas writer api I wrote a while ago: https://pastebin.com/rWPVArBW
+# Installation
+Run the following two commands, then you can run the `Detectionator` file.
+
+`wget https://raw.githubusercontent.com/Fatboychummy-CC/BlockDetectionator/main/Detectionator.lua`
+
+`pastebin get rWPVArBW ccanvas`
+
+# Notes
+This is very much an unfinished project. A lot of the functionality is not there.
