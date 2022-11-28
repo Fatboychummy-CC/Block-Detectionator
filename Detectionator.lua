@@ -53,6 +53,7 @@ local tOreDict = {
   ["railcraft:ore"] = {0,1,2,3,4},
   ["railcraft:ore_magic"] = {0},
   ["tconstruct:ore"] = {0,1},
+  ["mekanism:oreblock"] = {0,1,2},
 }
 local tOreNames = {
   ["actuallyadditions:block_misc:::3"] = "Black Quartz",
@@ -147,6 +148,9 @@ local tOreNames = {
   ["railcraft:ore_magic:::0"] = "Firestone",
   ["tconstruct:ore:::0"] = "Cobalt",
   ["tconstruct:ore:::1"] = "Ardite",
+  ["mekanism:oreblock:::0"] = "Osmium",
+  ["mekanism:oreblock:::1"] = "Copper",
+  ["mekanism:oreblock:::2"] = "Tin",
 }
 
 local function saveFile(sData, sFileName)
