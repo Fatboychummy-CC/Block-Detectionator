@@ -12,48 +12,48 @@ local locate = gps.locate
 local highlightsFile = ".highlights"
 
 local tOreDict = {
-  ["actuallyadditions:block_misc"] = {3},
-  ["minecraft:iron_ore"] = {0},
-  ["minecraft:gold_ore"] = {0},
-  ["minecraft:diamond_ore"] = {0},
-  ["minecraft:coal_ore"] = {0},
-  ["minecraft:lapis_ore"] = {0},
-  ["minecraft:emerald_ore"] = {0},
-  ["minecraft:quartz_ore"] = {0},
-  ["minecraft:redstone_ore"] = {0},
-  ["thermalfoundation:ore"] = {0,1,2,3,4,5,6,7,8},
-  ["thermalfoundation:ore_fluid"] = {0,1,2,3,4,5},
-  ["railcraft:ore_metal"] = {0,1,2,3,4,5},
-  ["railcraft:ore_metal_poor"] = {0,1,2,3,4,5,6,7},
-  ["bno:ore_netherdiamond"] = {0},
-  ["bno:ore_netheremerald"] = {0},
-  ["bno:ore_netherredstone"] = {0},
-  ["bno:ore_netheriron"] = {0},
-  ["bno:ore_nethergold"] = {0},
-  ["bno:ore_nethercoal"] = {0},
-  ["bno:ore_nethertin"] = {0},
-  ["bno:ore_nethercopper"] = {0},
-  ["bno:ore_netherlapis"] = {0},
-  ["dungeontactics:nethergold_ore"] = {0},
-  ["ic2:blockmetal"] = {0,1,2,3},
-  ["appliedenergistics2:quartz_ore"] = {0},
-  ["appliedenergistics2:charged_quartz_ore"] = {0},
-  ["dungeontactics:silver_ore"] = {0},
-  ["dungeontactics:mithril_ore"] = {0},
-  ["dungeontactics:stonequartz_ore"] = {0},
-  ["dungeontactics:enddiamond_ore"] = {0},
-  ["dungeontactics:endlapis_ore"] = {0},
-  ["galacticraftcore:basic_block_core"] = {5,6,7,8},
-  ["galacticraftcore:basic_block_moon"] = {0,1,2,6},
-  ["galacticraftplanets:mars"] = {0,1,2,3},
-  ["galacticraftplanets:asteroids_block"] = {3,5},
-  ["galacticraftplanets:venus"] = {6,7,8,9,10,11,13},
-  ["rftools:dimensional_shard_ore"] = {0,1,2},
-  ["quark:biotite_ore"] = {0},
-  ["railcraft:ore"] = {0,1,2,3,4},
-  ["railcraft:ore_magic"] = {0},
-  ["tconstruct:ore"] = {0,1},
-  ["mekanism:oreblock"] = {0,1,2},
+  ["actuallyadditions:block_misc"] = { 3 },
+  ["minecraft:iron_ore"] = { 0 },
+  ["minecraft:gold_ore"] = { 0 },
+  ["minecraft:diamond_ore"] = { 0 },
+  ["minecraft:coal_ore"] = { 0 },
+  ["minecraft:lapis_ore"] = { 0 },
+  ["minecraft:emerald_ore"] = { 0 },
+  ["minecraft:quartz_ore"] = { 0 },
+  ["minecraft:redstone_ore"] = { 0 },
+  ["thermalfoundation:ore"] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 },
+  ["thermalfoundation:ore_fluid"] = { 0, 1, 2, 3, 4, 5 },
+  ["railcraft:ore_metal"] = { 0, 1, 2, 3, 4, 5 },
+  ["railcraft:ore_metal_poor"] = { 0, 1, 2, 3, 4, 5, 6, 7 },
+  ["bno:ore_netherdiamond"] = { 0 },
+  ["bno:ore_netheremerald"] = { 0 },
+  ["bno:ore_netherredstone"] = { 0 },
+  ["bno:ore_netheriron"] = { 0 },
+  ["bno:ore_nethergold"] = { 0 },
+  ["bno:ore_nethercoal"] = { 0 },
+  ["bno:ore_nethertin"] = { 0 },
+  ["bno:ore_nethercopper"] = { 0 },
+  ["bno:ore_netherlapis"] = { 0 },
+  ["dungeontactics:nethergold_ore"] = { 0 },
+  ["ic2:blockmetal"] = { 0, 1, 2, 3 },
+  ["appliedenergistics2:quartz_ore"] = { 0 },
+  ["appliedenergistics2:charged_quartz_ore"] = { 0 },
+  ["dungeontactics:silver_ore"] = { 0 },
+  ["dungeontactics:mithril_ore"] = { 0 },
+  ["dungeontactics:stonequartz_ore"] = { 0 },
+  ["dungeontactics:enddiamond_ore"] = { 0 },
+  ["dungeontactics:endlapis_ore"] = { 0 },
+  ["galacticraftcore:basic_block_core"] = { 5, 6, 7, 8 },
+  ["galacticraftcore:basic_block_moon"] = { 0, 1, 2, 6 },
+  ["galacticraftplanets:mars"] = { 0, 1, 2, 3 },
+  ["galacticraftplanets:asteroids_block"] = { 3, 5 },
+  ["galacticraftplanets:venus"] = { 6, 7, 8, 9, 10, 11, 13 },
+  ["rftools:dimensional_shard_ore"] = { 0, 1, 2 },
+  ["quark:biotite_ore"] = { 0 },
+  ["railcraft:ore"] = { 0, 1, 2, 3, 4 },
+  ["railcraft:ore_magic"] = { 0 },
+  ["tconstruct:ore"] = { 0, 1 },
+  ["mekanism:oreblock"] = { 0, 1, 2 },
 }
 local tOreNames = {
   ["actuallyadditions:block_misc:::3"] = "Black Quartz",
@@ -153,6 +153,32 @@ local tOreNames = {
   ["mekanism:oreblock:::2"] = "Tin",
 }
 
+do
+  local names = {}
+
+  -- Determine the copies
+  for id, name in pairs(tOreNames) do
+    if names[name] then
+      -- insert this id into the table of names for current name.
+      table.insert(names[name], id)
+    else
+      -- initialize a table for the current name:id.
+      names[name] = { id }
+    end
+  end
+
+  -- For each copy, append "(modname)" to the end
+  for name, ids in pairs(names) do
+    -- if there is more than one id, then we have a copy.
+    if #ids > 1 then
+      for _, id in ipairs(ids) do
+        -- Copper (mekanism)
+        tOreNames[id] = string.format("%s (%s)", name, id:match("(.-)%:"))
+      end
+    end
+  end
+end
+
 local function saveFile(sData, sFileName)
   local h, err = io.open(sFileName, 'w')
   if not h then
@@ -220,7 +246,7 @@ local function pingFor(tDetect, scan)
     scan = scan()
   end
 
-  local found = {n = 0}
+  local found = { n = 0 }
 
   -- loop through each item scanned
   for i = 1, #scan do
@@ -291,7 +317,6 @@ local function MenuOptions(options, stopsOnSelection)
       end
     end
   end
-
 
   while true do
     redraw()
@@ -456,7 +481,7 @@ local function SearchHighlights()
       end
     end
 
-    options[#options + 1] = {v, isIn, k}
+    options[#options + 1] = { v, isIn, k }
   end
 
   RadialSelector(options)
@@ -497,18 +522,18 @@ end
 
 local function highlightsCB()
   MenuOptions({
-    {"Search", CountHighlights, SearchHighlights},
-    {"Highlighted", CountHighlights, Highlighted},
-    {"Go back", function() return "" end}
+    { "Search", CountHighlights, SearchHighlights },
+    { "Highlighted", CountHighlights, Highlighted },
+    { "Go back", function() return "" end }
   }, 3)
 end
 
 local function menu()
   MenuOptions({
-    {"Toggle",     isDisplaying,  toggleCB    },
-    {"Ores",       numOres,       oresCB      },
-    {"Highlights", CountHighlights, highlightsCB},
-    {"Exit", function() return "" end}
+    { "Toggle", isDisplaying, toggleCB },
+    { "Ores", numOres, oresCB },
+    { "Highlights", CountHighlights, highlightsCB },
+    { "Exit", function() return "" end }
   }, 4)
 end
 
@@ -551,7 +576,8 @@ local function scanner()
 
       for i = 1, ores.n do
         local ore = ores[i]
-        local item = oreCanvas.addItem({ore.x - lx + 0.5, ore.y - ly + 0.5, ore.z - lz + 0.5}, ore.name, ore.metadata, CloseFade(ore.x, ore.y, ore.z))
+        local item = oreCanvas.addItem({ ore.x - lx + 0.5, ore.y - ly + 0.5, ore.z - lz + 0.5 }, ore.name, ore.metadata,
+          CloseFade(ore.x, ore.y, ore.z))
         item.setDepthTested(false)
       end
 
@@ -560,7 +586,8 @@ local function scanner()
         local ore = highlights[i]
         local scale = CloseFade(ore.x, ore.y, ore.z)
         scale = scale + 0.3 * scale + 0.1
-        local item = highlightCanvas.addBox(ore.x + 0.5 - lx - scale / 2, ore.y + 0.5 - ly - scale / 2, ore.z + 0.5 - lz - scale / 2, scale, scale, scale, 0xffffffff)
+        local item = highlightCanvas.addBox(ore.x + 0.5 - lx - scale / 2, ore.y + 0.5 - ly - scale / 2,
+          ore.z + 0.5 - lz - scale / 2, scale, scale, scale, 0xffffffff)
         item.setDepthTested(false)
       end
     else
