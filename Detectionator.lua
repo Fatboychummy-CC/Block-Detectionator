@@ -2,6 +2,8 @@ local modules = peripheral.wrap "back"
 
 local ok, writer = pcall(require, "ccanvas")
 
+---@type function
+---@diagnostic disable-next-line
 local doScan = modules.scan and modules.scan or error("Missing block scanner!", 0)
 ---@type table
 ---@diagnostic disable-next-line shutup shutup shutup shutup shutup shutup shutup
@@ -35,12 +37,15 @@ if not ok then
     [colors.black]     = { 17, 17, 17 }
   }
 
+  ---@alias colour integer
+
   --- Write to the player's screen
   ---@param text string The text to write.
   ---@param x integer The x position.
   ---@param y integer The y position.
   ---@param color colour The color to be used.
-  writer = function(text, x, y, color)
+  ---@param _ any ignored
+  writer = function(text, x, y, color, _, _)
     local converted = colorConvert[color] or error("Invalid color.", 2)
     local tmp = canvas.addText({ x, y }, text)
 
