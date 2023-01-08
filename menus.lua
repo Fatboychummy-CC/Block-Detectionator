@@ -48,9 +48,9 @@ local function redraw_menu(menu)
       term.write("|")
     end
     term.setCursorPos(1, TOP_POS)
-    term.write('\x1E')
+    term.write('=')
     term.setCursorPos(1, TOP_POS + down_count - 1)
-    term.write('\x1F')
+    term.write('=')
   else
     if down_count == 1 then
       term.setCursorPos(1, TOP_POS)
@@ -60,19 +60,25 @@ local function redraw_menu(menu)
         term.setCursorPos(1, y)
         term.write("|")
       end
+
       term.setCursorPos(1, TOP_POS)
-      term.write('=')
+      term.write('\x1E')
       term.setCursorPos(1, TOP_POS + down_count - 1)
-      term.write('=')
+      term.write('\x1F')
     end
   end
 
   -- Draw the selections.
   term.setTextColor(colors.white)
   for y = TOP_POS, TOP_POS + down_count - 1 do
-    local sel_n = y - TOP_POS + 1
+    local sel_n = y - TOP_POS + 1 + menu._scroll_position
     ---@type selection
     local sel = menu.selections[sel_n]
+    if not sel then
+      print()
+      error(string.format("Bad selection: Got %d, max %d (scroll: %d, select: %d).", sel_n, #menu.selections,
+        menu._scroll_position, menu._selected), 0)
+    end
     term.setCursorPos(3, y)
 
     if menu._selected + 1 == sel_n then
@@ -141,10 +147,32 @@ local event_handlers = {
   ---@param menu menu
   ---@param key integer
   key = function(menu, key)
+    local _, h = menu.win.getSize()
     if key == keys.up then
       menu._selected = (menu._selected - 1) % #menu.selections
+
+      -- scroll up if needed
+      if menu._selected < menu._scroll_position then
+        menu._scroll_position = menu._selected
+      end
+
+      -- handle wrap-around
+      if menu._selected == #menu.selections - 1 then
+        menu._scroll_position = #menu.selections - 8 ---@TODO this is a hardcoded size!
+        if menu._scroll_position < 0 then menu._scroll_position = 0 end
+      end
     elseif key == keys.down then
       menu._selected = (menu._selected + 1) % #menu.selections
+
+      -- scroll down if needed
+      while menu._selected > menu._scroll_position + (h - 6) do ---@TODO this is a hardcoded size!
+        menu._scroll_position = menu._scroll_position + 1
+      end
+
+      -- handle wrap-around
+      if menu._selected == 0 then
+        menu._scroll_position = 0
+      end
     elseif key == keys.enter then
       return true
     end
@@ -178,7 +206,8 @@ function menus.create(win, title)
     selections = {},
     win = win,
     title = title,
-    _selected = 0
+    _selected = 0,
+    _scroll_position = 0
   }
 
   function menu.addSelection(id, name, description, long_description, options)
