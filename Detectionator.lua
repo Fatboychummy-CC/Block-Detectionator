@@ -1,6 +1,10 @@
 local modules = peripheral.wrap "back"
-local writer = require "ccanvas"
+
+local ok, writer = pcall(require, "ccanvas")
+
 local doScan = modules.scan and modules.scan or error("Missing block scanner!", 0)
+---@type table
+---@diagnostic disable-next-line shutup shutup shutup shutup shutup shutup shutup
 local canvas3d = modules.canvas3d and modules.canvas3d() or error("Missing overlay glasses!", 0)
 local canvas = modules.canvas()
 canvas3d.clear()
@@ -10,6 +14,39 @@ local mX, mY = term.getSize()
 local consoleWindow = window.create(term.current(), 1, 10, mX, mY - 8)
 local locate = gps.locate
 local highlightsFile = ".highlights"
+
+if not ok then
+  local colorConvert = {
+    [colors.white]     = { 240, 240, 240 },
+    [colors.orange]    = { 242, 178, 51 },
+    [colors.magenta]   = { 229, 127, 216 },
+    [colors.lightBlue] = { 153, 178, 242 },
+    [colors.yellow]    = { 222, 222, 108 },
+    [colors.lime]      = { 127, 204, 25 },
+    [colors.pink]      = { 242, 178, 204 },
+    [colors.gray]      = { 76, 76, 76 },
+    [colors.lightGray] = { 153, 153, 153 },
+    [colors.cyan]      = { 76, 153, 178 },
+    [colors.purple]    = { 178, 102, 229 },
+    [colors.blue]      = { 51, 102, 204 },
+    [colors.brown]     = { 127, 102, 76 },
+    [colors.green]     = { 87, 166, 78 },
+    [colors.red]       = { 204, 76, 76 },
+    [colors.black]     = { 17, 17, 17 }
+  }
+
+  --- Write to the player's screen
+  ---@param text string The text to write.
+  ---@param x integer The x position.
+  ---@param y integer The y position.
+  ---@param color colour The color to be used.
+  writer = function(text, x, y, color)
+    local converted = colorConvert[color] or error("Invalid color.", 2)
+    local tmp = canvas.addText({ x, y }, text)
+
+    tmp.setColor(converted[1], converted[2], converted[3])
+  end
+end
 
 local tOreDict = {
   ["actuallyadditions:block_misc"] = { 3 },
