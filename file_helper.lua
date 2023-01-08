@@ -82,4 +82,18 @@ function file.serialize(filename, data, compact)
   h:write(textutils.serialize(data, { compact = compact })):close()
 end
 
+--- Write data to a file, adding a `return` before the data.
+---@param filename string The file to write to.
+---@param data any The data to write, this will be serialized.
+---@param compact boolean? Whether or not to compact the output file.
+function file.serializeReturn(filename, data, compact)
+  local h, err = io.open(filename, 'w')
+
+  if not h then
+    error(("Failed to open '%s' for writing."):format(err), 2)
+  end
+
+  h:write("return " .. textutils.serialize(data, { compact = compact })):close()
+end
+
 return file
