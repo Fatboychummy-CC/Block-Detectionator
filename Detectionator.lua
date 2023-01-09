@@ -248,6 +248,17 @@ local function list_add_menu()
 
   repeat
     local selection = menu.run()
+    if selection ~= RETURN then
+      local display_name = menus.question(main_window, "Add block from list",
+        "What is the display name for the block '" .. selection .. "' (Example: Oak Sapling)? Leave blank to cancel.")
+
+      if display_name ~= "" then
+        unknowns[selection] = nil
+        block_cache[selection] = display_name
+        menu.removeSelection(selection)
+        file_helper.serialize(CACHE_FILE, block_cache, true)
+      end
+    end
   until selection == RETURN
 end
 
@@ -255,10 +266,12 @@ local function manual_add_menu()
   local block_id = menus.question(main_window, "Add block manually",
     "What is the block's block id (Example: minecraft:oak_sapling)?")
   local display_name = menus.question(main_window, "Add block manually",
-    "What is the block's display name (Example: Oak Sapling)?")
+    "What is the block's display name (Example: Oak Sapling)? Leave blank to cancel.")
 
-  block_cache[block_id] = display_name
-  file_helper.serialize(CACHE_FILE, block_cache, true)
+  if display_name ~= "" then
+    block_cache[block_id] = display_name
+    file_helper.serialize(CACHE_FILE, block_cache, true)
+  end
 end
 
 --- Display unknown blocks and ask for names for them. Adds to cache.
