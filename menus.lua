@@ -5,6 +5,7 @@ local deep_copy = require "deep_copy"
 ---@class menu
 ---@field public addSelection fun(id:string, name:string, description:string|fun(id:string), long_description:string, options:selection_options?) Add a new selection to the menu.
 ---@field public editSelection fun(id:string, name:string?, description:string|fun(id:string)?, long_description:string?, options:selection_options?) Edit a selection in the menu. Supplied fields will be updated, `nil` fields ignored.
+---@field public removeSelection fun(id:string) Remove a selection from the menu.
 ---@field public getSelection fun(id:string):selection? Get information about a selection.
 ---@field public run fun(id:string?):string Run the menu and return the id of the selection selected. Start with the id passed selected (or the first selection, if nil)
 ---@field public title string The title of this menu
@@ -229,6 +230,21 @@ function menus.create(win, title)
     end
   end
 
+  function menu.removeSelection(id)
+    for i, selection in ipairs(menu.selections) do
+      if selection.id == id then
+        table.remove(menu.selections, i)
+
+        -- protect from overflowing on removal.
+        menu._scroll_position = 0
+        menu._selected = 0
+
+        os.queueEvent("menu_redraw")
+        return
+      end
+    end
+  end
+
   function menu.getSelection(id)
     for _, selection in ipairs(menu.selections) do
       if selection.id == id then
@@ -241,6 +257,9 @@ function menus.create(win, title)
     redraw_menu(menu)
     while true do
       if handle_menu_event(menu, coroutine.yield()) then
+        if not menu.selections[menu._selected + 1] then
+          error(("Bad selection on return: %d of a max %d"):format(menu._selected + 1, #menu.selections), 0)
+        end
         return menu.selections[menu._selected + 1].id
       end
     end
