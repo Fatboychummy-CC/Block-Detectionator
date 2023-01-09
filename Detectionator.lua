@@ -347,12 +347,35 @@ local function main_menu()
 end
 
 --- Main scanning thread. Scan ores while displaying, otherwise hide everything.
+local group = canvas.addGroup({ 0, 0 })
 local function scan()
+  local text1 = group.addText({ 1, 1 }, "Blocks detected:")
+  local text2 = group.addText({ 1, 12 }, "Blocks highlighted:")
+  local DETECT_POS = { 85, 1 }
+  local HIGHLIGHT_POS = { 94, 12 }
+
+  local tracked = QIT()
   while true do
-    detect()
-    os.queueEvent "menu_redraw"
+    local wanted = detect()
+
+    while tracked.n > 0 do
+      tracked:Remove().remove()
+    end
+
+    if is_displaying then
+      os.queueEvent "menu_redraw"
+
+      tracked:Insert(group.addText(DETECT_POS, tostring(wanted.ores.n)))
+      tracked:Insert(group.addText(HIGHLIGHT_POS, tostring(wanted.highlights.n)))
+    end
     sleep(5)
   end
 end
 
-parallel.waitForAny(main_menu, scan)
+local ok, err = pcall(parallel.waitForAny, main_menu, scan)
+group.clear()
+
+if not ok then
+  print()
+  printError(err)
+end
