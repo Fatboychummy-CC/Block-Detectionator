@@ -1,16 +1,28 @@
-local block_cache = require "cache"
 local QIT = require "QIT"
-local cache_ids_only = (
-    function() local t = QIT()
-      for id in pairs(block_cache) do t:Insert(id) end
-      table.sort(t, function(a, b)
-        return block_cache[a] < block_cache[b]
-      end)
-      return t:Clean()
-    end
-    )()
 local file_helper = require "file_helper"
 local menus = require "menus"
+
+local DIR = fs.getDir(shell.getRunningProgram())
+local CACHE_FILE = fs.combine(DIR, "cache.dat")
+local HIGHLIGHTS_FILE = fs.combine(DIR, "highlights.dat")
+local ORES_FILE = fs.combine(DIR, "ores.dat")
+local UNKNOWNS_FILE = fs.combine(DIR, "unknowns.dat")
+local block_cache = file_helper.unserialize(CACHE_FILE)
+
+--- Get the block cache as a sorted list of just the block IDs.
+---@return string[] cache_list Sorted list of blocks sorted by their cached name.
+local function get_cache()
+  local t = QIT()
+
+  for id in pairs(block_cache) do t:Insert(id) end
+  table.sort(t, function(a, b)
+    return block_cache[a] < block_cache[b]
+  end)
+
+  return t:Clean()
+end
+
+local cache_ids_only = get_cache()
 
 local modules = peripheral.wrap "back"
 
@@ -28,10 +40,8 @@ local locate = gps.locate
 local w, h = term.getSize()
 local main_window = window.create(term.current(), 1, 1, w, h)
 
-local dir = fs.getDir(shell.getRunningProgram())
-
-local highlights = file_helper.unserialize(fs.combine(dir, "highlights.lua"), {})
-local ores = file_helper.unserialize(fs.combine(dir, "ores.lua"), {
+local highlights = file_helper.unserialize(HIGHLIGHTS_FILE, {})
+local ores = file_helper.unserialize(ORES_FILE, {
   ["minecraft:coal_ore"] = true,
   ["minecraft:iron_ore"] = true,
   ["minecraft:gold_ore"] = true,
@@ -52,7 +62,7 @@ local ores = file_helper.unserialize(fs.combine(dir, "ores.lua"), {
   ["minecraft:nether_gold_ore"] = true,
   ["minecraft:ancient_debris"] = true,
 })
-local unknowns = file_helper.unserialize(fs.combine(dir, "unknowns.lua"), {})
+local unknowns = file_helper.unserialize(UNKNOWNS_FILE, {})
 
 local function get_as_list(t)
   local list = QIT()
@@ -157,9 +167,9 @@ local function blocks_toggle_menu(blocks, toggle_type)
   until selection == RETURN
 
   if toggle_type == "highlights" then
-    file_helper.serialize(fs.combine(dir, "highlights.lua"), highlights, true)
+    file_helper.serialize(HIGHLIGHTS_FILE, highlights, true)
   else
-    file_helper.serialize(fs.combine(dir, "ores.lua"), ores, true)
+    file_helper.serialize(ORES_FILE, ores, true)
   end
 end
 
@@ -248,7 +258,7 @@ local function manual_add_menu()
     "What is the block's display name (Example: Oak Sapling)?")
 
   block_cache[block_id] = display_name
-  file_helper.serializeReturn(fs.combine(dir, "cache.lua"), block_cache, true)
+  file_helper.serialize(CACHE_FILE, block_cache, true)
 end
 
 --- Display unknown blocks and ask for names for them. Adds to cache.
@@ -274,6 +284,7 @@ local function unknown_menu()
     elseif selection == LIST then
       list_add_menu()
     end
+    cache_ids_only = get_cache()
   until selection == RETURN
 end
 
