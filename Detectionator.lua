@@ -349,14 +349,29 @@ end
 --- Main scanning thread. Scan ores while displaying, otherwise hide everything.
 local group = canvas.addGroup({ 0, 0 })
 local function scan()
-  local text1 = group.addText({ 1, 1 }, "Blocks detected:")
-  local text2 = group.addText({ 1, 12 }, "Blocks highlighted:")
+  group.addText({ 1, 1 }, "Blocks detected:")
+  group.addText({ 1, 12 }, "Blocks highlighted:")
   local DETECT_POS = { 85, 1 }
   local HIGHLIGHT_POS = { 94, 12 }
 
   local tracked = QIT()
   while true do
-    local wanted = detect()
+    -- in theory this should give us the finest positioning...
+    local gx, gy, gz = 0, 0, 0
+    local wanted
+    parallel.waitForAll(
+      function()
+        wanted = detect()
+      end,
+      function()
+        local x, y, z = gps.locate()
+        if x then
+          gx, gy, gz = x, y, z
+        end
+      end
+    )
+
+    gx, gy, gz = gx % 1, gy % 1, gz % 1
 
     while tracked.n > 0 do
       tracked:Remove().remove()
@@ -365,10 +380,39 @@ local function scan()
     if is_displaying then
       os.queueEvent "menu_redraw"
 
+      -- display counts of ores and highlights
       tracked:Insert(group.addText(DETECT_POS, tostring(wanted.ores.n)))
       tracked:Insert(group.addText(HIGHLIGHT_POS, tostring(wanted.highlights.n)))
+
+      -- clear what is drawn to the 3d canvases (canvi?)
+      highlight_canvas.clear()
+      highlight_canvas.recenter()
+      ore_canvas.clear()
+      ore_canvas.recenter()
+
+      -- Add all the ores
+      for i = 1, wanted.ores.n do
+        local ore = wanted.ores[i]
+        local scale = 1 ---@TODO close fade
+        local item = ore_canvas.addItem({ ore.x - gx + 0.5, ore.y - gy + 0.5, ore.z - gz + 0.5 },
+          ore.name, scale, scale, scale)
+        item.setDepthTested(false)
+      end
+
+      -- Highlight ores
+      for i = 1, wanted.highlights.n do
+        local ore = wanted.highlights[i]
+        local scale = 1 ---@TODO Close fade
+        scale = scale + 0.3 * scale + 0.1
+        local item = highlight_canvas.addBox(ore.x + 0.5 - gx - scale / 2, ore.y + 0.5 - gy - scale / 2,
+          ore.z + 0.5 - gz - scale / 2, scale, scale, scale, 0xffffffff)
+        item.setDepthTested(false)
+      end
+    else
+      highlight_canvas.clear()
+      ore_canvas.clear()
     end
-    sleep(5)
+    sleep(1)
   end
 end
 
