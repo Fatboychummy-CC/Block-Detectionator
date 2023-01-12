@@ -7,6 +7,7 @@ local CACHE_FILE = fs.combine(DIR, "cache.dat")
 local HIGHLIGHTS_FILE = fs.combine(DIR, "highlights.dat")
 local ORES_FILE = fs.combine(DIR, "ores.dat")
 local UNKNOWNS_FILE = fs.combine(DIR, "unknowns.dat")
+local SETTINGS_FILE = fs.combine(DIR, "settings.dat")
 local block_cache = file_helper.unserialize(CACHE_FILE)
 
 --- Get the block cache as a sorted list of just the block IDs.
@@ -63,6 +64,9 @@ local ores = file_helper.unserialize(ORES_FILE, {
   ["minecraft:ancient_debris"] = true,
 })
 local unknowns = file_helper.unserialize(UNKNOWNS_FILE, {})
+local set = file_helper.unserialize(SETTINGS_FILE, {
+  ["display.refresh_rate"] = 1
+})
 
 local function get_as_list(t)
   local list = QIT()
@@ -301,6 +305,48 @@ local function unknown_menu()
   until selection == RETURN
 end
 
+--- Settings page to set settings settingly
+local function settings_menu()
+  local menu = menus.create(main_window, "Settings")
+  local REFRESH_RATE = "refresh_rate"
+  local RETURN = "return"
+
+  local function refresh_rate_value()
+    return tostring(set["display.refresh_rate"])
+  end
+
+  local overrides = {
+    override_width = 10
+  }
+
+  menu.addSelection(REFRESH_RATE, "Refresh Rate", refresh_rate_value,
+    "Change the refresh rate: 0.25, 1, 2, 3, 4, 5, 10", overrides)
+  menu.addSelection(RETURN, "Return", "Go back.", "Go to the previous menu.", overrides)
+
+  local refresh_next = {
+    unknown = 1,
+    [0.25] = 1,
+    2,
+    3,
+    4,
+    5,
+    10,
+    [10] = 0.25
+  }
+
+  repeat
+    local selection = menu.run()
+
+    if selection == REFRESH_RATE then
+      if refresh_next[set["display.refresh_rate"]] then
+        set["display.refresh_rate"] = refresh_next[set["display.refresh_rate"]]
+      else
+        set["display.refresh_rate"] = refresh_next.unknown
+      end
+    end
+  until selection == RETURN
+end
+
 --- Main menu. Display a bunch of crap and whatnot.
 local function main_menu()
   local menu = menus.create(main_window, "Block Detectionator")
@@ -308,6 +354,7 @@ local function main_menu()
   local ORES = "ores"
   local HIGHLIGHTS = "highlights"
   local UNKNOWN = "unknown"
+  local SETTINGS = "settings"
   local EXIT = "exit"
 
   local function toggle_value()
@@ -330,6 +377,8 @@ local function main_menu()
   menu.addSelection(ORES, "Blocks", ores_value, "Press enter to edit the blocks being scanned for.")
   menu.addSelection(HIGHLIGHTS, "Highlights", highlights_value, "Press enter to edit the highlights.")
   menu.addSelection(UNKNOWN, "Unknown", unknown_value, "Press enter to add unknown blocks to the cache.")
+  menu.addSelection(SETTINGS, "Settings", "Change other settings.",
+    "Press enter to change a bunch of other, random settings.")
   menu.addSelection(EXIT, "Exit", "Exit this program.", "Return to the CraftOS shell.")
 
   repeat
@@ -342,6 +391,8 @@ local function main_menu()
       blocks_menu("highlights")
     elseif selection == UNKNOWN then
       unknown_menu()
+    elseif selection == SETTINGS then
+      settings_menu()
     end
   until selection == EXIT
 end
@@ -412,7 +463,7 @@ local function scan()
       highlight_canvas.clear()
       ore_canvas.clear()
     end
-    sleep(1)
+    sleep(set["display.refresh_rate"])
   end
 end
 
