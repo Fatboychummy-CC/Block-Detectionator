@@ -65,7 +65,8 @@ local ores = file_helper.unserialize(ORES_FILE, {
 })
 local unknowns = file_helper.unserialize(UNKNOWNS_FILE, {})
 local set = file_helper.unserialize(SETTINGS_FILE, {
-  ["display.refresh_rate"] = 1
+  ["display.refresh_rate"] = 1,
+  ["display.offset_by_gps"] = true
 })
 
 local function get_as_list(t)
@@ -309,10 +310,15 @@ end
 local function settings_menu()
   local menu = menus.create(main_window, "Settings")
   local REFRESH_RATE = "refresh_rate"
+  local USE_GPS = "use_gps"
   local RETURN = "return"
 
   local function refresh_rate_value()
     return tostring(set["display.refresh_rate"])
+  end
+
+  local function gps_value()
+    return set["display.offset_by_gps"] and "Auto" or "Off"
   end
 
   local overrides = {
@@ -321,6 +327,8 @@ local function settings_menu()
 
   menu.addSelection(REFRESH_RATE, "Refresh Rate", refresh_rate_value,
     "Change the refresh rate: 0.25, 1, 2, 3, 4, 5, 10", overrides)
+  menu.addSelection(USE_GPS, "Use GPS", gps_value, "Toggle usage of GPS to smooth block positioning: Off, Auto",
+    overrides)
   menu.addSelection(RETURN, "Return", "Go back.", "Go to the previous menu.", overrides)
 
   local refresh_next = {
@@ -343,6 +351,8 @@ local function settings_menu()
       else
         set["display.refresh_rate"] = refresh_next.unknown
       end
+    elseif selection == USE_GPS then
+      set["display.offset_by_gps"] = not set["display.offset_by_gps"]
     end
   until selection == RETURN
 end
@@ -402,24 +412,30 @@ local group = canvas.addGroup({ 0, 0 })
 local function scan()
   group.addText({ 1, 1 }, "Blocks detected:")
   group.addText({ 1, 12 }, "Blocks highlighted:")
+  group.addText({ 1, 23 }, "GPS Lock:")
+  group.addRectangle(0, 0, 120, 32).setColor(0, 0, 0, 100)
   local DETECT_POS = { 85, 1 }
   local HIGHLIGHT_POS = { 94, 12 }
+  local GPS_POS = { 50, 23 }
 
   local tracked = QIT()
   while true do
     -- in theory this should give us the finest positioning...
     local gx, gy, gz = 0, 0, 0
+    local gps_lock = false
     local wanted
     parallel.waitForAll(
       function()
         wanted = detect()
       end,
+      set["display.offset_by_gps"] and
       function()
         local x, y, z = gps.locate()
         if x then
           gx, gy, gz = x, y, z
+          gps_lock = true
         end
-      end
+      end or function() end
     )
 
     gx, gy, gz = gx % 1, gy % 1, gz % 1
@@ -434,6 +450,15 @@ local function scan()
       -- display counts of ores and highlights
       tracked:Insert(group.addText(DETECT_POS, tostring(wanted.ores.n)))
       tracked:Insert(group.addText(HIGHLIGHT_POS, tostring(wanted.highlights.n)))
+      local gps_text = group.addText(GPS_POS,
+        gps_lock and "LOCKED" or set["display.offset_by_gps"] and "FAIL" or "DISABLED")
+      if gps_lock then
+        gps_text.setColor(0, 255, 0)
+      else
+        gps_text.setColor(255, 0, 0)
+      end
+
+      tracked:Insert(gps_text)
 
       -- clear what is drawn to the 3d canvases (canvi?)
       highlight_canvas.clear()
