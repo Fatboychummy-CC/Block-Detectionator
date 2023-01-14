@@ -355,6 +355,8 @@ local function settings_menu()
       set["display.offset_by_gps"] = not set["display.offset_by_gps"]
     end
   until selection == RETURN
+
+  file_helper.serialize(SETTINGS_FILE, set)
 end
 
 --- Main menu. Display a bunch of crap and whatnot.
