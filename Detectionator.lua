@@ -37,7 +37,6 @@ local canvas = modules.canvas() -- canvas exists if canvas3d exists
 local highlight_canvas, ore_canvas = canvas3d.create(), canvas3d.create()
 
 local is_displaying = true
-local locate = gps.locate
 local w, h = term.getSize()
 local main_window = window.create(term.current(), 1, 1, w, h)
 
@@ -411,7 +410,7 @@ end
 
 --- Main scanning thread. Scan ores while displaying, otherwise hide everything.
 local group = canvas.addGroup({ 0, 0 })
-local function scan()
+local function scanner()
   group.addText({ 1, 1 }, "Blocks detected:")
   group.addText({ 1, 12 }, "Blocks highlighted:")
   group.addText({ 1, 23 }, "GPS Lock:")
@@ -420,38 +419,37 @@ local function scan()
   local HIGHLIGHT_POS = { 94, 12 }
   local GPS_POS = { 50, 23 }
 
-  local tracked = QIT()
+  ---@type table<string, canvas_item_info>
+  local tracked_positions = {}
+  local canvas_info = QIT()
+  local tracked_other = QIT()
+
   while true do
     -- in theory this should give us the finest positioning...
     local gx, gy, gz = 0, 0, 0
     local gps_lock = false
     local wanted
-    parallel.waitForAll(
-      function()
-        wanted = detect()
-      end,
-      set["display.offset_by_gps"] and
-      function()
-        local x, y, z = gps.locate()
-        if x then
-          gx, gy, gz = x, y, z
-          gps_lock = true
-        end
-      end or function() end
-    )
-
+    wanted = detect()
+    if set["display.offset_by_gps"] then
+      local x, y, z = gps.locate()
+      if x then
+        gx, gy, gz = x, y, z
+        gps_lock = true
+      end
+    end
+    --local _gx, _gy, _gz = gx, gy, gz
     gx, gy, gz = gx % 1, gy % 1, gz % 1
 
-    while tracked.n > 0 do
-      tracked:Remove().remove()
+    while tracked_other.n > 0 do
+      tracked_other:Remove().remove()
     end
 
     if is_displaying then
       os.queueEvent "menu_redraw"
 
       -- display counts of ores and highlights
-      tracked:Insert(group.addText(DETECT_POS, tostring(wanted.ores.n)))
-      tracked:Insert(group.addText(HIGHLIGHT_POS, tostring(wanted.highlights.n)))
+      tracked_other:Insert(group.addText(DETECT_POS, tostring(wanted.ores.n)))
+      tracked_other:Insert(group.addText(HIGHLIGHT_POS, tostring(wanted.highlights.n)))
       local gps_text = group.addText(GPS_POS,
         gps_lock and "LOCKED" or set["display.offset_by_gps"] and "FAIL" or "DISABLED")
       if gps_lock then
@@ -460,7 +458,7 @@ local function scan()
         gps_text.setColor(255, 0, 0)
       end
 
-      tracked:Insert(gps_text)
+      tracked_other:Insert(gps_text)
 
       -- clear what is drawn to the 3d canvases (canvi?)
       highlight_canvas.clear()
@@ -472,7 +470,10 @@ local function scan()
       for i = 1, wanted.ores.n do
         local ore = wanted.ores[i]
         local scale = 1 ---@TODO close fade
-        local item = ore_canvas.addItem({ ore.x - gx + 0.5, ore.y - gy + 0.5, ore.z - gz + 0.5 },
+        local position = { ore.x - gx + 0.5, ore.y - gy + 0.5, ore.z - gz + 0.5 }
+        --local pos_string = ("%.2f;%.2f;%.2f"):format(_gx + ore.x, _gy + ore.y,
+        --  _gz + ore.z)
+        local item = ore_canvas.addItem(position,
           ore.name, scale, scale, scale)
         item.setDepthTested(false)
       end
@@ -494,7 +495,7 @@ local function scan()
   end
 end
 
-local ok, err = pcall(parallel.waitForAny, main_menu, scan)
+local ok, err = pcall(parallel.waitForAny, main_menu, scanner)
 group.clear()
 
 if not ok then
