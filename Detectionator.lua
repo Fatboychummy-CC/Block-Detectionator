@@ -65,7 +65,9 @@ local ores = file_helper.unserialize(ORES_FILE, {
 local unknowns = file_helper.unserialize(UNKNOWNS_FILE, {})
 local set = file_helper.unserialize(SETTINGS_FILE, {
   ["display.refresh_rate"] = 1,
-  ["display.offset_by_gps"] = true
+  ["display.offset_by_gps"] = true,
+  ["display.highlight_alpha"] = 50,
+  ["display.timer"] = true
 })
 
 local function get_as_list(t)
@@ -310,6 +312,8 @@ local function settings_menu()
   local menu = menus.create(main_window, "Settings")
   local REFRESH_RATE = "refresh_rate"
   local USE_GPS = "use_gps"
+  local TIMER = "timer"
+  local ALPHA = "alpha"
   local RETURN = "return"
 
   local function refresh_rate_value()
@@ -320,6 +324,14 @@ local function settings_menu()
     return set["display.offset_by_gps"] and "Auto" or "Off"
   end
 
+  local function timer_value()
+    return set["display.timer"] and "On" or "Off"
+  end
+
+  local function highlight_value()
+    return ("%d%%"):format(set["display.highlight_alpha"])
+  end
+
   local overrides = {
     override_width = 10
   }
@@ -328,6 +340,8 @@ local function settings_menu()
     "Change the refresh rate: 0.25, 1, 2, 3, 4, 5, 10", overrides)
   menu.addSelection(USE_GPS, "Use GPS", gps_value, "Toggle usage of GPS to smooth block positioning: Off, Auto",
     overrides)
+  menu.addSelection(TIMER, "Show Timer", timer_value, "Toggle display of the timer between scans.", overrides)
+  menu.addSelection(ALPHA, "Highlight Alpha", highlight_value, "Change the alpha value (10% steps).", overrides)
   menu.addSelection(RETURN, "Return", "Go back.", "Go to the previous menu.", overrides)
 
   local refresh_next = {
@@ -352,6 +366,10 @@ local function settings_menu()
       end
     elseif selection == USE_GPS then
       set["display.offset_by_gps"] = not set["display.offset_by_gps"]
+    elseif selection == TIMER then
+      set["display.timer"] = not set["display.timer"]
+    elseif selection == ALPHA then
+      set["display.highlight_alpha"] = (set["display.highlight_alpha"] + 10) % 110
     end
   until selection == RETURN
 
@@ -418,11 +436,53 @@ local function scanner()
   local DETECT_POS = { 85, 1 }
   local HIGHLIGHT_POS = { 94, 12 }
   local GPS_POS = { 50, 23 }
+  local TICK_DOWN_POS = { 0, 34 }
+  local TICK_DOWN_SIZE = { 120, 8 }
 
   ---@type table<string, canvas_item_info>
   local tracked_positions = {}
   local canvas_info = QIT()
   local tracked_other = QIT()
+
+  local tick_box, tick_bar ---@type Rectangle2D?, Rectangle2D? tick_bar guaranteed to exist if tick_box exists.
+
+  --- Display a bar that "ticks down" until the next scan.
+  local function tick_down()
+    local wait_time = set["display.refresh_rate"]
+
+    if not tick_box and set["display.timer"] then
+      tick_box = group.addRectangle(TICK_DOWN_POS[1], TICK_DOWN_POS[2], TICK_DOWN_SIZE[1], TICK_DOWN_SIZE[2])
+      tick_bar = group.addRectangle(TICK_DOWN_POS[1] + 1, TICK_DOWN_POS[2] + 1, TICK_DOWN_SIZE[1] - 2,
+        TICK_DOWN_SIZE[2] - 2)
+
+      tick_box.setColor(255, 255, 255, 150)
+      tick_bar.setColor(0, 255, 0, 150)
+    end
+
+    if set["display.timer"] then
+      local end_time = os.epoch "utc" + wait_time * 1000
+      repeat
+        local the_time = os.epoch "utc"
+        local time_left_percent = (end_time - the_time) / 1000 / wait_time
+
+        ---@diagnostic disable-next-line tick_bar exists if tick_box exists.
+        tick_bar.setSize((TICK_DOWN_SIZE[1] - 2) * time_left_percent, TICK_DOWN_SIZE[2] - 2)
+
+        sleep()
+      until the_time >= end_time
+    else
+      if tick_box then
+        tick_box.remove()
+
+        ---@diagnostic disable-next-line tick_bar exists if tick_box exists.
+        tick_bar.remove()
+
+        tick_box = nil
+        tick_bar = nil
+      end
+      sleep(wait_time)
+    end
+  end
 
   while true do
     -- in theory this should give us the finest positioning...
@@ -484,14 +544,15 @@ local function scanner()
         local scale = 1 ---@TODO Close fade
         scale = scale + 0.3 * scale + 0.1
         local item = highlight_canvas.addBox(ore.x + 0.5 - gx - scale / 2, ore.y + 0.5 - gy - scale / 2,
-          ore.z + 0.5 - gz - scale / 2, scale, scale, scale, 0xffffffff)
+          ore.z + 0.5 - gz - scale / 2, scale, scale, scale,
+          0xffffff00 + math.floor(set["display.highlight_alpha"] / 100 * 255))
         item.setDepthTested(false)
       end
     else
       highlight_canvas.clear()
       ore_canvas.clear()
     end
-    sleep(set["display.refresh_rate"])
+    tick_down()
   end
 end
 
@@ -502,3 +563,6 @@ if not ok then
   print()
   printError(err)
 end
+
+
+---@todo "tickdown" bar for when the next scan is going to occur.
