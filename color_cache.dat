@@ -1,0 +1,18 @@
+{
+  ["minecraft:iron_ore"] = 0xdfbda800,
+  ["minecraft:deepslate_iron_ore"] = 0xdfbda800,
+  ["minecraft:coal_ore"] = 0x33333300,
+  ["minecraft:deepslate_coal_ore"] = 0x33333300,
+  ["minecraft:copper_ore"] = 0xf0806700,
+  ["minecraft:deepslate_copper_ore"] = 0xf0806700,
+  ["minecraft:redstone_ore"] = 0xfc000000,
+  ["minecraft:deepslate_redstone_ore"] = 0xfc000000,
+  ["minecraft:emerald_ore"] = 0x17da6100,
+  ["minecraft:deepslate_emerald_ore"] = 0x17da6100,
+  ["minecraft:lapis_ore"] = 0x1c56c400,
+  ["minecraft:deepslate_lapis_ore"] = 0x1c56c400,
+  ["minecraft:diamond_ore"] = 0x5ce9f200,
+  ["minecraft:deepslate_diamond_ore"] = 0x5ce9f200,
+  ["minecraft:nether_quartz_ore"] = 0xe4ded500,
+  ["minecraft:ancient_debris"] = 0x7c5f5800
+}
