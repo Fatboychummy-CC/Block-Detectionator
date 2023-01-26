@@ -1,4 +1,4 @@
---- Installer program to install either the client or server.
+--- Installer program to install Detectionator.
 
 local args = table.pack(...)
 
