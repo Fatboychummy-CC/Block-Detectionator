@@ -4,6 +4,7 @@ local menus = require "menus"
 
 local DIR = fs.getDir(shell.getRunningProgram())
 local CACHE_FILE = fs.combine(DIR, "cache.dat")
+local COLOR_FILE = fs.combine(DIR, "color_cache.dat")
 local HIGHLIGHTS_FILE = fs.combine(DIR, "highlights.dat")
 local ORES_FILE = fs.combine(DIR, "ores.dat")
 local UNKNOWNS_FILE = fs.combine(DIR, "unknowns.dat")
@@ -62,6 +63,7 @@ local ores = file_helper.unserialize(ORES_FILE, {
   ["minecraft:nether_gold_ore"] = true,
   ["minecraft:ancient_debris"] = true,
 })
+local color_cache = file_helper.unserialize(COLOR_FILE, {})
 local unknowns = file_helper.unserialize(UNKNOWNS_FILE, {})
 local set = file_helper.unserialize(SETTINGS_FILE, {
   ["display.refresh_rate"] = 1,
@@ -69,6 +71,8 @@ local set = file_helper.unserialize(SETTINGS_FILE, {
   ["display.highlight_alpha"] = 50,
   ["display.timer"] = true
 })
+
+local to_be_cached = {}
 
 local function get_as_list(t)
   local list = QIT()
@@ -84,9 +88,22 @@ end
 
 --- Scan, then return information about blocks that we are searching for.
 ---@return {ores:block_data[], highlights:block_data[]} scan_data
+---@return number x position
+---@return number y position
+---@return number z position
+---@return boolean lock gps lock
 local function detect()
   local blocks = scan()
   local wanted = { ores = QIT(), highlights = QIT() }
+  local x, y, z = 0, 0, 0
+  local lock = false
+
+  if set["display.offset_by_gps"] then
+    x, y, z = gps.locate()
+    if x then lock = true end
+  end
+
+  local new_color_block = false
 
   for _, block_info in ipairs(blocks) do
     if ores[block_info.name] then
@@ -98,12 +115,20 @@ local function detect()
     if not block_cache[block_info.name] then
       unknowns[block_info.name] = true
     end
+    if not color_cache[block_info.name] then
+      to_be_cached[block_info.name] = block_info
+      new_color_block = true
+    end
+  end
+
+  if new_color_block then
+    os.queueEvent("update_color_cache")
   end
 
   wanted.ores:Clean()
   wanted.highlights:Clean()
 
-  return wanted
+  return wanted, x, y, z, lock
 end
 
 --- Count the number of items in a dictionary style table.
@@ -427,7 +452,7 @@ local function main_menu()
 end
 
 --- Main scanning thread. Scan ores while displaying, otherwise hide everything.
-local group = canvas.addGroup({ 0, 0 })
+local group = canvas.addGroup({ 0, 0 }) ---@type Group2D
 local function scanner()
   group.addText({ 1, 1 }, "Blocks detected:")
   group.addText({ 1, 12 }, "Blocks highlighted:")
@@ -484,19 +509,26 @@ local function scanner()
     end
   end
 
+  --- Create a new canvas and insert it into canvas_info
+  ---@param block_infos Array<block_info> The block information.
+  local function make_canvas(block_infos)
+    local can = canvas3d.create()
+
+
+  end
+
+  --- Remove extra canvases that no longer have any objects in them.
+  local function cull_canvases()
+
+  end
+
   while true do
     -- in theory this should give us the finest positioning...
     local gx, gy, gz = 0, 0, 0
     local gps_lock = false
     local wanted
-    wanted = detect()
-    if set["display.offset_by_gps"] then
-      local x, y, z = gps.locate()
-      if x then
-        gx, gy, gz = x, y, z
-        gps_lock = true
-      end
-    end
+    wanted, gx, gy, gz, gps_lock = detect()
+
     --local _gx, _gy, _gz = gx, gy, gz
     gx, gy, gz = gx % 1, gy % 1, gz % 1
 
@@ -542,11 +574,18 @@ local function scanner()
       for i = 1, wanted.highlights.n do
         local ore = wanted.highlights[i]
         local scale = 1 ---@TODO Close fade
-        scale = scale + 0.3 * scale + 0.1
+        local scale_fade = (vector.new(ore.x, ore.y, ore.z):length() - 10) / 8
+        if scale_fade > 0 then scale_fade = 0 else scale_fade = -scale_fade end
+        scale = scale + 0.3 * scale + 0.1 - scale_fade
+
+        ---@type Box3D
         local item = highlight_canvas.addBox(ore.x + 0.5 - gx - scale / 2, ore.y + 0.5 - gy - scale / 2,
-          ore.z + 0.5 - gz - scale / 2, scale, scale, scale,
-          0xffffff00 + math.floor(set["display.highlight_alpha"] / 100 * 255))
+          ore.z + 0.5 - gz - scale / 2, scale, scale, scale)
+
+        local color = (color_cache[ore.name] or 0xffffff00) + math.floor(set["display.highlight_alpha"] / 100 * 255)
+
         item.setDepthTested(false)
+        item.setColor(color)
       end
     else
       highlight_canvas.clear()
@@ -556,7 +595,35 @@ local function scanner()
   end
 end
 
-local ok, err = pcall(parallel.waitForAny, main_menu, scanner)
+local function color_cacher()
+  while true do
+    os.pullEvent("update_color_cache")
+
+    ---@type QIT<function>
+    local funcs = QIT()
+
+    for name, data in pairs(to_be_cached) do
+      funcs:Insert(function()
+        if color_cache[name] then return end -- may already be cached
+
+        local meta = peripheral.call("back", "getBlockMeta", data.x, data.y, data.z)
+        if color_cache[name] then return end -- other threads may have gotten this item before this thread.
+
+        if meta and meta.name == name then -- if the player moves before caching the item, we may get a different item!
+          -- left-shift 8 bits to allow for transparency.
+          -- 0xfafafa --> 0xfafafa00
+          color_cache[name] = bit.blshift(meta.color, 8)
+        end
+      end)
+    end
+
+    parallel.waitForAll(table.unpack(funcs, 1, funcs.n))
+
+    file_helper.serialize(COLOR_FILE, color_cache, true)
+  end
+end
+
+local ok, err = pcall(parallel.waitForAny, main_menu, scanner, color_cacher)
 group.clear()
 
 if not ok then
