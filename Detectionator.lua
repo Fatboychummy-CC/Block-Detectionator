@@ -630,6 +630,3 @@ if not ok then
   print()
   printError(err)
 end
-
-
----@todo "tickdown" bar for when the next scan is going to occur.
