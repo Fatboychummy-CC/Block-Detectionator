@@ -19,8 +19,8 @@ local files_needed = {
   ["file_helper.lua"] = "https://raw.githubusercontent.com/Fatboychummy-CC/Block-Detectionator/1.19/file_helper.lua",
   ["menus.lua"] = "https://raw.githubusercontent.com/Fatboychummy-CC/Block-Detectionator/1.19/menus.lua",
 
-  ["cache.dat"] = "https://raw.githubusercontent.com/Fatboychummy-CC/Block-Detectionator/1.19/cache.lua",
-  ["color_cache.dat"] = "https://raw.githubusercontent.com/Fatboychummy-CC/Block-Detectionator/1.19/color_cache.lua",
+  ["cache.dat"] = "https://raw.githubusercontent.com/Fatboychummy-CC/Block-Detectionator/1.19/cache.dat",
+  ["color_cache.dat"] = "https://raw.githubusercontent.com/Fatboychummy-CC/Block-Detectionator/1.19/color_cache.dat",
 }
 
 
