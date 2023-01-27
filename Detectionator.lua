@@ -464,9 +464,6 @@ local function scanner()
   local TICK_DOWN_POS = { 0, 34 }
   local TICK_DOWN_SIZE = { 120, 8 }
 
-  ---@type table<string, canvas_item_info>
-  local tracked_positions = {}
-  local canvas_info = QIT()
   local tracked_other = QIT()
 
   local tick_box, tick_bar ---@type Rectangle2D?, Rectangle2D? tick_bar guaranteed to exist if tick_box exists.
@@ -507,19 +504,6 @@ local function scanner()
       end
       sleep(wait_time)
     end
-  end
-
-  --- Create a new canvas and insert it into canvas_info
-  ---@param block_infos Array<block_info> The block information.
-  local function make_canvas(block_infos)
-    local can = canvas3d.create()
-
-
-  end
-
-  --- Remove extra canvases that no longer have any objects in them.
-  local function cull_canvases()
-
   end
 
   while true do
