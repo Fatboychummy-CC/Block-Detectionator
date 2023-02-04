@@ -100,7 +100,11 @@ local function detect()
 
   if set["display.offset_by_gps"] then
     x, y, z = gps.locate()
-    if x then lock = true end
+    if x then
+      lock = true
+    else
+      x, y, z = 0, 0, 0
+    end
   end
 
   local new_color_block = false
