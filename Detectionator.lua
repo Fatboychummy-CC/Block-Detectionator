@@ -519,6 +519,9 @@ local function scanner()
 
     --local _gx, _gy, _gz = gx, gy, gz
     gx, gy, gz = gx % 1, gy % 1, gz % 1
+    if not gps_lock then
+      gx, gy, gz = 0.5, 0.5, 0.5
+    end
 
     while tracked_other.n > 0 do
       tracked_other:Remove().remove()
