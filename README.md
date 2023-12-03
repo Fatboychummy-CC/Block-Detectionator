@@ -11,3 +11,5 @@ Run the following two commands, then you can run the `Detectionator` file.
 
 # Notes
 This is very much an unfinished project. A lot of the functionality is not there.
+--
+![Le detectionator](./.resources/detectionator.png)
